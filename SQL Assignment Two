@@ -1,0 +1,242 @@
+-- Question Answers
+-- (1 A set of results from a query
+-- (2 Union removes duplicates and sorts by the first column
+-- (3 Intersect and Except
+-- (4 A join is an intersection of data. A union is an addition of data
+-- (5 An inner join will only result in intersecting rows. A full join will result in all values whether there was an intersection or not.
+-- (6 A left join will only result in the rows from the left and any from the right which intersect. An outer join will result in all values whether there was an intersection or not. 
+-- (7 A cross joins will result in every possible combination of the two data sets.
+-- (8 Where comes after the from statment and is for filtering the base query. Having is used after a group by and is used to sort the grouped results
+-- (9 Yes
+
+-- Queries
+
+-- Start using AdventureWorks2019
+USE AdventureWorks2019
+GO
+
+-- (1
+SELECT COUNT(*) AS NumberOfProducts
+FROM Production.Product
+
+-- (2
+SELECT COUNT(*) AS NumberOfProducts
+FROM Production.Product
+WHERE ProductSubcategoryID IS NOT NULL
+
+-- (3
+SELECT ProductSubcategoryID,
+	   COUNT(*) AS NumberOfProducts
+FROM Production.Product
+WHERE ProductSubcategoryID IS NOT NULL
+GROUP BY ProductSubcategoryID
+
+-- (4
+SELECT COUNT(*) AS NumberOfProducts
+FROM Production.Product
+WHERE ProductSubcategoryID IS NULL
+
+-- (5
+SELECT SUM(Quantity) AS ItemsInStock
+FROM Production.ProductInventory
+
+-- (6
+SELECT ProductID,
+	   Quantity
+FROM Production.ProductInventory
+WHERE LocationID = 40
+AND Quantity < 100
+
+-- (7
+SELECT Shelf,
+	   ProductID,
+	   Quantity
+FROM Production.ProductInventory
+WHERE LocationID = 40
+AND Quantity < 100
+
+-- (8
+SELECT LocationID,
+	   AVG(Quantity) AS AverageQuantity
+FROM Production.ProductInventory
+WHERE LocationID = 10
+GROUP BY LocationID
+
+-- (9
+SELECT ProductID,
+	   Shelf,
+	   AVG(Quantity) AS AverageQuantity
+FROM Production.ProductInventory
+GROUP BY ProductID, Shelf
+ORDER BY Shelf
+
+-- (10
+SELECT ProductID,
+	   Shelf,
+	   AVG(Quantity) AS AverageQuantity
+FROM Production.ProductInventory
+WHERE Shelf NOT IN ('N/A')
+GROUP BY ProductID, Shelf
+ORDER BY Shelf
+
+-- (11
+SELECT Color,
+	   Class,
+	   COUNT(*) AS TheCount,
+	   AVG(ListPrice) AS AvgPrice
+FROM Production.Product
+WHERE Color IS NOT NULL
+AND Class IS NOT NULL
+GROUP BY Color, Class
+
+-- (12
+SELECT c.Name AS Country,
+	   s.Name AS Province
+FROM Person.CountryRegion c
+JOIN Person.StateProvince s
+ON c.CountryRegionCode = s.CountryRegionCode
+
+-- (13
+SELECT c.Name AS Country,
+	   s.Name AS Province
+FROM Person.CountryRegion c
+JOIN Person.StateProvince s
+ON c.CountryRegionCode = s.CountryRegionCode
+WHERE c.Name IN ('Germany', 'Canada')
+
+-- Start using Northwind
+USE Northwind
+GO
+
+-- (14
+SELECT ProductName
+FROM Products
+WHERE ProductID IN
+	(SELECT DISTINCT od.ProductID
+	 FROM Orders o
+	 JOIN [Order Details] od
+	 ON o.OrderID = od.OrderID
+	 WHERE (YEAR(SYSDATETIME()) - YEAR(o.OrderDate)) < 25)
+
+-- (15
+SELECT o.ShipPostalCode,
+	   COUNT(*) AS NumberOfProducts
+FROM Orders o
+JOIN [Order Details] od
+ON o.OrderID = od.OrderID
+GROUP BY o.ShipPostalCode
+ORDER BY o.ShipPostalCode
+
+-- (16
+SELECT o.ShipPostalCode,
+	   COUNT(*) AS NumberOfProducts
+FROM Orders o
+JOIN [Order Details] od
+ON o.OrderID = od.OrderID
+WHERE (YEAR(SYSDATETIME()) - YEAR(o.OrderDate)) < 25
+GROUP BY o.ShipPostalCode
+ORDER BY o.ShipPostalCode
+
+-- (17
+SELECT City,
+	   COUNT(*) AS NumberOfCustomers
+FROM Customers
+GROUP BY City
+
+-- (18
+SELECT *
+FROM (SELECT City,
+	  COUNT(*) AS NumberOfCustomers
+	  FROM Customers
+	  GROUP BY City) csCount
+WHERE NumberOfCustomers > 2
+
+-- (19
+SELECT CompanyName
+FROM Customers c
+JOIN Orders o
+ON c.CustomerID = o.CustomerID
+WHERE o.OrderDate >= '1998-01-01'
+Order BY OrderID
+
+-- (20
+SELECT CompanyName,
+	   MAX(OrderDate) AS LatestOrderDate
+FROM Customers c
+JOIN Orders o
+ON c.CustomerID = o.CustomerID
+GROUP BY CompanyName
+
+-- (21
+SELECT CompanyName,
+	   SUM(od.Quantity) AS ProductsOrdered
+FROM Customers c
+JOIN Orders o
+ON c.CustomerID = o.CustomerID
+JOIN [Order Details] od
+ON o.OrderID = od.OrderID
+GROUP BY CompanyName
+ORDER BY CompanyName
+
+-- (22
+SELECT *
+FROM (SELECT CustomerID,
+	  SUM(od.Quantity) AS ProductsOrdered
+	  FROM Orders o
+      JOIN [Order Details] od
+      ON o.OrderID = od.OrderID
+      GROUP BY CustomerID) CustProductCount
+WHERE ProductsOrdered > 100
+ORDER BY CustomerID
+
+-- (23
+SELECT supp.CompanyName,
+	   ship.CompanyName
+FROM Suppliers supp
+CROSS JOIN Shippers ship
+ORDER BY supp.CompanyName
+-- This is what is being asked for as far as I can tell, but it seems like an odd query. If this is incorrect, please let me know.
+
+-- (24
+SELECT DISTINCT p.ProductName,
+				o.OrderDate
+FROM Orders o
+JOIN [Order Details] od
+ON o.OrderID = od.OrderID
+JOIN Products p
+ON od.ProductID = p.ProductID
+ORDER BY o.OrderDate, p.ProductName
+
+-- (25
+SELECT e1.EmployeeID,
+	   e2.EmployeeID,
+	   e1.Title
+FROM Employees e1
+JOIN Employees e2
+ON e1.Title = e2.Title
+WHERE e1.EmployeeID != e2.EmployeeID
+
+-- (26
+SELECT *
+FROM (SELECT EmployeeID,
+		    (SELECT COUNT(*)
+			 FROM Employees u
+			 WHERE u.ReportsTo = m.EmployeeID) AS ResponsibleFor
+	  FROM Employees m) Managers
+WHERE ResponsibleFor > 2
+
+-- (27
+SELECT *
+FROM [Customer and Suppliers by City]
+
+SELECT City,
+	   CompanyName AS Name,
+	   ContactName,
+	   'Customer' AS Type
+FROM Customers
+UNION
+SELECT City,
+	   CompanyName AS Name,
+	   ContactName,
+	   'Supplier' AS Type
+FROM Suppliers
