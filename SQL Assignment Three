@@ -82,22 +82,38 @@ ON c.CustomerID = o.CustomerID
 WHERE c.City != o.ShipCity
 
 -- (8 -- broken
-SELECT ProductID,
-	   SUM(Quantity),
-	   ROW_NUMBER() OVER(ORDER BY SUM(Quantity) DESC) AS RNK,
-	   AVG(UnitPrice) AvgPrice,
-	   (SELECT City
-	    FROM Customers c
-		JOIN Orders o
-		ON c.CustomerID = o.CustomerID
-		JOIN [Order Details] od
-		ON o.OrderID = od.OrderID
-		WHERE od.ProductID = odb.ProductID
-		AND od.Quantity IN (SELECT MAX(Quantity)
-						   FROM [Order Details] od2
-						   WHERE od2.ProductID = odb.ProductID))
-FROM [Order Details] odb
-GROUP BY ProductID
+
+-- This will get all but the most purcahsing city
+SELECT *
+FROM (SELECT ProductID,
+	  SUM(Quantity) AS QSum,
+	  ROW_NUMBER() OVER(ORDER BY SUM(Quantity) DESC) AS RNK,
+	  AVG(UnitPrice) AvgPrice,
+	  MAX(Quantity) AS MostSold
+	  FROM [Order Details] odb
+	  GROUP BY ProductID) prod
+WHERE RNK <=5
+
+-- This is the most of that product in a single order
+SELECT prod.ProductID, QSum, RNK, AvgPrice, MostSold, most.City
+FROM (SELECT ProductID,
+	  SUM(Quantity) AS QSum,
+	  ROW_NUMBER() OVER(ORDER BY SUM(Quantity) DESC) AS RNK,
+	  AVG(UnitPrice) AS AvgPrice,
+	  MAX(Quantity) AS MostSold
+	  
+	  FROM [Order Details] odb
+	  GROUP BY ProductID) prod
+JOIN (SELECT DISTINCT City, ProductID, Quantity
+	  FROM [Order Details] od
+	  JOIN Orders o
+	  ON od.OrderID = o.OrderID
+	  JOIN Customers c
+	  ON o.CustomerID = c.CustomerID) most
+ON prod.ProductID = most.ProductID
+WHERE RNK <=5 AND MostSold = most.Quantity
+ORDER BY RNK
+
 
 -- (9
 SELECT City
