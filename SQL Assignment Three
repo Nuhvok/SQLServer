@@ -101,19 +101,18 @@ FROM (SELECT ProductID,
 	  ROW_NUMBER() OVER(ORDER BY SUM(Quantity) DESC) AS RNK,
 	  AVG(UnitPrice) AS AvgPrice,
 	  MAX(Quantity) AS MostSold
-	  
 	  FROM [Order Details] odb
 	  GROUP BY ProductID) prod
 JOIN (SELECT DISTINCT City, ProductID, Quantity
-	  FROM [Order Details] od
-	  JOIN Orders o
-	  ON od.OrderID = o.OrderID
-	  JOIN Customers c
-	  ON o.CustomerID = c.CustomerID) most
+      FROM [Order Details] od
+      JOIN Orders o
+      ON od.OrderID = o.OrderID
+      JOIN Customers c
+      ON o.CustomerID = c.CustomerID) most
 ON prod.ProductID = most.ProductID
-WHERE RNK <=5 AND MostSold = most.Quantity
+WHERE RNK <=5
+AND MostSold = most.Quantity
 ORDER BY RNK
-
 
 -- (9
 SELECT City
