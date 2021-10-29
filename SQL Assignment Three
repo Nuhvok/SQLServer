@@ -1,0 +1,148 @@
+-- Question Answers
+
+-- (1
+-- (2 CTE stands for common table expression and is generally used for recursive joins with itself
+-- (3 A variable of type table. They are only in scope for the next statement immediately after their creation. They are stored in memory.
+-- (4 Delete can be used to delete any number of rows from a table with or without a where clause.
+--    Truncate will always delete all rows of a table.
+--    Truncate is faster when an entire table's data needs to be deleted because it uses a single transaction for the entire table rather that one transaction for each row.
+-- (5 An identity is an automatic counter that is attached to a primary key field to ensure that every primary key is unique.
+--    When delete is used to clear a table, the identity is not reset. When truncate is used, the identity is reset.
+-- (6 The number of transactions that will be required to complete the operation.
+
+-- Queries
+
+-- (1
+SELECT DISTINCT City
+FROM Customers
+WHERE City IN (SELECT City
+			   FROM Employees)
+
+-- (2
+SELECT DISTINCT City
+FROM Customers
+WHERE City NOT IN (SELECT City
+			       FROM Employees)
+
+SELECT c.City
+FROM Customers c
+LEFT JOIN Employees e
+ON c.City = e.City
+WHERE e.City IS NULL
+
+-- (3
+SELECT p.ProductID,
+	   SUM(Quantity)
+FROM Products p
+JOIN [Order Details] od
+ON p.ProductID = od.ProductID
+JOIN Orders o
+ON o.OrderID = od.OrderID
+GROUP BY p.ProductID
+
+-- (4
+SELECT c.City,
+       SUM(Quantity)
+FROM Customers c
+JOIN Orders o
+ON c.CustomerID = o.CustomerID
+JOIN [Order Details] od
+ON o.OrderID = od.OrderID
+GROUP BY c.City
+
+-- (5
+
+-- I cannot think of a way to use a union meaningfully to complete this problem
+
+SELECT DISTINCT City
+FROM Customers c1
+WHERE City IN (SELECT City
+			   FROM Customers c2
+			   WHERE c2.CustomerID != c1.CustomerID)
+
+-- (6
+SELECT DISTINCT City
+FROM Customers c1
+JOIN Orders o1
+ON c1.CustomerID = o1.CustomerID
+JOIN [Order Details] od1
+ON o1.OrderID = od1.OrderID
+WHERE City IN (SELECT City FROM Customers c2 JOIN Orders o2
+				ON c1.CustomerID = o2.CustomerID
+				JOIN [Order Details] od2
+				ON o2.OrderID = od2.OrderID
+				WHERE c2.City = c1.City
+				AND od2.ProductID != od1.ProductID)
+
+-- (7
+SELECT DISTINCT c.CustomerID
+FROM Customers c
+JOIN Orders o
+ON c.CustomerID = o.CustomerID
+WHERE c.City != o.ShipCity
+
+-- (8 -- broken
+SELECT ProductID,
+	   SUM(Quantity),
+	   ROW_NUMBER() OVER(ORDER BY SUM(Quantity) DESC) AS RNK,
+	   AVG(UnitPrice) AvgPrice,
+	   (SELECT City
+	    FROM Customers c
+		JOIN Orders o
+		ON c.CustomerID = o.CustomerID
+		JOIN [Order Details] od
+		ON o.OrderID = od.OrderID
+		WHERE od.ProductID = odb.ProductID
+		AND od.Quantity IN (SELECT MAX(Quantity)
+						   FROM [Order Details] od2
+						   WHERE od2.ProductID = odb.ProductID))
+FROM [Order Details] odb
+GROUP BY ProductID
+
+-- (9
+SELECT City
+FROM Employees
+WHERE City NOT IN (SELECT City
+				   FROM Customers c
+				   JOIN Orders o
+				   ON c.CustomerID = o.CustomerID)
+
+SELECT e.City
+FROM Employees e
+LEFT JOIN Customers c
+ON e.City = c.City
+LEFT JOIN Orders o
+ON c.CustomerID = o.CustomerID
+WHERE c.City IS NULL
+
+-- (10
+
+
+-- (11
+	-- Use the DISTINCT keyword
+
+-- (13
+SELECT deptname,
+	   NumOfEmp
+FROM (SELECT deptname,
+			 COUNT(*) AS NumOfEmp,
+			 RANK() OVER(GROUP BY COUNT(*) DESC) AS RNK
+	  FROM Employee e
+      JOIN Dept d
+      ON e.deptid = d.deptid)
+WHERE RNK = 1
+ORDER BY deptname
+
+-- (14
+SELECT deptname,
+	   empid,
+	   salary
+FROM (SELECT deptname,
+			 empid,
+			 salary,
+			 RANK() OVER(PARTITION BY salary DESC) AS RNK
+	  FROM Employee e
+      JOIN Dept d
+      ON e.deptid = d.deptid)
+WHERE RNK BETWEEN 1 AND 3
+ORDER BY deptname
