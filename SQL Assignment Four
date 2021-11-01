@@ -1,0 +1,196 @@
+
+
+-- Question Answers
+
+-- (1 A view is a table generated from a predefined query. The main benefit of using a view is that the acessor cannot see the true tables and columns being accessed
+-- (2 Data can be modified through a view, though it is not recommended because the modifier often does not know what tables he is actually modifying behind the scene.
+-- (3 A stored procedure is a stored block of code that is stored on the DMBS and can be reused on command.
+-- (4 A view is not capable of taking input. A stored procedure is.
+-- (5 Stored procedures do not require inputs. Functions do.
+-- (6 Apparently they can, though the returned result sets cannot be used for much
+-- (7 Yes, as long as it will return a scalar value. Multiple values would not be acceptable for a single cell or any type of comparison.
+-- (8 A trigger is basically a stored procedure that is fired when a specified event ocurrs. There are DDL, DML, CLR, and Logon triggers
+-- (9 As mentioned before, stored procedures fire when called, triggers fire when a specified event ocurrs.
+
+-- Queries
+
+-- (1
+CREATE VIEW view_product_order_Rolfe
+AS
+Select p.ProductID,
+	   SUM(Quantity) AS TotalSold
+FROM Products p
+JOIN [Order Details] od
+ON p.ProductID = od.ProductID
+GROUP BY p.ProductID
+
+-- (2
+CREATE PROCEDURE sp_product_order_quantity_rolfe 
+	@p_ProductID Int
+AS
+BEGIN
+	DECLARE @TotalQuant INT
+
+	SELECT @TotalQuant = SUM(Quantity)
+	FROM [Order Details]
+	WHERE ProductID = @p_ProductID
+
+	RETURN @TotalQuant
+END
+
+-- (3
+CREATE PROCEDURE sp_product_order_city_rolfe 
+	@p_ProductName NVARCHAR
+AS
+BEGIN
+	SELECT TOP 5
+		City,
+		SUM(Quantity) AS Quant
+	FROM [Order Details] od
+	JOIN Orders o
+	ON od.OrderID = o.OrderID
+	JOIN Customers c
+	ON o.CustomerID = c.CustomerID
+	JOIN Products p
+	ON od.ProductID = p.ProductID
+	WHERE p.ProductName = @p_ProductName
+	GROUP BY City
+	ORDER BY Quant DESC
+END
+
+-- (4
+CREATE TABLE people_rolfe(
+	Id INT,
+	Name NVARCHAR (100),
+	City NVARCHAR (100))
+	
+CREATE TABLE city_rolfe(
+	Id INT,
+	City NVARCHAR (100))
+
+INSERT INTO city_rolfe
+VALUES(
+	1,
+	'Seattle')
+
+INSERT INTO city_rolfe
+VALUES(
+	2,
+	'Green Bay')
+
+INSERT INTO people_rolfe
+VALUES(
+	1,
+	'Aaron Rodgers',
+	2)
+
+INSERT INTO people_rolfe
+VALUES(
+	2,
+	'Russell Wilson',
+	1)
+
+INSERT INTO people_rolfe
+VALUES(
+	3,
+	'Jody Nelson',
+	2)
+
+BEGIN
+	BEGIN TRANSACTION
+	BEGIN TRY
+		INSERT INTO city_rolfe
+		VALUES(
+			3,
+			'Madison')
+
+		UPDATE people_rolfe
+		SET City = 3
+		WHERE City = 1
+
+		DELETE FROM city_rolfe WHERE City = 'Seattle'
+	END TRY
+	BEGIN CATCH
+		ROLLBACK
+	END CATCH
+
+	COMMIT
+END
+
+CREATE VIEW Packers_rolfe
+AS
+SELECT Name
+FROM people_rolfe p
+JOIN city_rolfe c
+ON p.City = c.Id
+WHERE c.City = 'Green Bay'
+
+TRUNCATE TABLE people_rolfe
+TRUNCATE TABLE city_rolfe
+
+DROP TABLE people_rolfe
+DROP TABLE city_rolfe
+
+-- (5
+CREATE PROCEDURE sp_birthday_employees_rolfe
+AS
+
+BEGIN
+	CREATE TABLE birthday_employees_rolfe(
+		EmpName NVARCHAR (50))
+
+	
+
+	DECLARE @offset INT = 0
+	DECLARE @numOfEmp INT
+	DECLARE @empName NVARCHAR (50)
+
+	SELECT EmployeeID,
+		   FirstName + ' ' + LastName AS Name
+	INTO #FebEmp
+	FROM Employees
+	WHERE MONTH(BirthDate) = 2
+
+	SELECT @numOfEmp = COUNT(*)
+	FROM #FebEmp
+
+	SELECT @empName = Name
+	FROM #FebEmp
+	ORDER BY EmployeeID
+	OFFSET @offset ROWS
+	FETCH NEXT 1 ROWS ONLY
+
+	WHILE (@offset < @numOfEmp)
+	BEGIN
+		INSERT INTO birthday_employees_rolfe
+		VALUES(
+			@empName)
+
+		SET @offset = @offset + 1
+
+		SELECT @empName = Name
+		FROM #FebEmp
+		ORDER BY EmployeeID
+		OFFSET @offset ROWS
+		FETCH NEXT 1 ROWS ONLY
+	END
+
+	DROP TABLE birthday_employees_rolfe
+END
+
+-- (6
+-- An intersection of the two tables on every row of each table should result in the same number of rows as both comapared tables
+
+-- (7
+SELECT [First Name] + ' ' + [Last Name] + ' ' + ISNULL([Middle Name] + '.', '')
+FROM SampleTable
+
+-- (8
+SELECT MAX(Marks)
+FROM Students
+WHERE Sex = 'F'
+
+-- (9
+SELECT Student, Marks, Sex
+FROM Students
+ORDER BY Sex, Marks
